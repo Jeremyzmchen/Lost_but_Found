@@ -17,7 +17,7 @@ class GameplayState:
         self.game_manager = game_manager
         self.money = 0
         self.shift_time = 0
-        self.shift_duration = 60
+        self.shift_duration = 180
         if 'money' in game_manager.game_data:
             self.money = game_manager.game_data['money']
 
@@ -48,10 +48,9 @@ class GameplayState:
             path = 'assets/images/icons/label.png'
             if os.path.exists(path):
                 self.label_image = pygame.image.load(path)
-        except:
-            pass
+        except: pass
 
-        self.call_police_btn = Button(1400, 800, 160, 50, "Call Police", None, style='danger', font_size=24)
+        self.call_police_btn = Button(1430, 570, 130, 70, "Call Police", None, style='danger', font_size=27)
 
         self._init_game()
         self.dragging_item = None
@@ -60,13 +59,33 @@ class GameplayState:
         self.font_small = pygame.font.Font(FONT_PATH, 24)
 
     def _load_background(self):
+        """
+        diaobeijing
+
+        :parameter
+        :return:
+        """
         self.background = pygame.transform.scale(
             pygame.image.load(ASSETS['bg_main']),
             (WINDOW_WIDTH, WINDOW_HEIGHT)
         )
 
+    # TODO 12.04修改替换
     def _load_conveyor_texture(self):
-        self.conveyor_texture = pygame.transform.scale(pygame.image.load('assets/images/belt_tile.png'), (self.belt_width, self.belt_width))
+        try:
+            # 直接加载图片 (请确保文件名匹配)
+            self.conveyor_texture = pygame.image.load('assets/images/conveyor_belt.png')
+
+            # [重要] 直接读取图片宽度，用于后续的居中计算
+            # 这样无论您的图片是180px还是200px，都会自动居中
+            self.belt_width = self.conveyor_texture.get_width()
+
+        except Exception as e:
+            print(f"无法加载传送带图片: {e}")
+            # 备用：生成一个灰色矩形
+            self.conveyor_texture = pygame.Surface((160, 100))
+            self.conveyor_texture.fill((100, 100, 100))
+            self.belt_width = 160
 
     def _spawn_popup(self, x, y, text, c=COLOR_WHITE):
         self.popups.append(FloatingText(x, y, text, c))
@@ -76,24 +95,31 @@ class GameplayState:
         self._spawn_customer()
         try:
             pygame.mixer.music.load('assets/sounds/bgm_gameplay.mp3')
-            pygame.mixer.music.set_volume(0.7)
+            pygame.mixer.music.set_volume(0.1)
             pygame.mixer.music.play(-1)
         except: pass
 
+    # TODO 12.04修改替换
     def _spawn_item_on_conveyor(self):
         self.batch_pause_states[self.current_batch_id] = {'paused': False, 'timer': 0, 'triggered': False}
+
         for i in range(ITEMS_PER_BATCH):
             item = Item(random.choice(list(ITEM_DESCRIPTIONS.keys())))
-            item.on_conveyor = True; item.item_index = i; item.batch_id = self.current_batch_id
+            item.on_conveyor = True
+            item.item_index = i
+            item.batch_id = self.current_batch_id
 
-            start = CONVEYOR_PATH[0]
-            hoff = i * 80
-            voff = [35, 0, -35][i]
+            # [修改] 位置计算：
+            # X轴：在传送带中心左右稍微随机偏移一点，看起来自然
+            x_offset = random.randint(-30, 30)
+            target_x = CONVEYOR_CENTER_X + x_offset - item.width // 2
 
-            item.conveyor_start_offset = hoff
-            item.conveyor_vertical_offset = voff
-            item.set_position(start[0]-hoff-item.width//2, start[1]-item.height//2)
+            # Y轴：从屏幕上方(-150)开始，每个物品向上间隔 180 像素
+            target_y = -150 - (i * 180)
+
+            item.set_position(target_x, target_y)
             self.conveyor_items.append(item)
+
         self.current_batch_id += 1
 
     def _spawn_customer(self):
@@ -124,6 +150,7 @@ class GameplayState:
         if c in self.customers: self.customers.remove(c)
         if c in self.customer_slots: self.customer_slots[self.customer_slots.index(c)] = None
 
+    # 警察
     def _handle_delivery(self, c, item):
         if isinstance(c, Police):
             if c.police_state == 'waiting_for_note':
@@ -245,11 +272,16 @@ class GameplayState:
                     st['timer'] += dt
                     if st['timer'] >= pause_dur: st['paused'] = False
 
+        # TODO 12.04修改替换
         removes = []
         for i in self.conveyor_items[:]:
             if i.on_conveyor:
-                paused = self.batch_pause_states.get(i.batch_id, {'paused':False})
-                if i.update_conveyor_movement(dt, CONVEYOR_SPEED, CONVEYOR_PATH, paused): removes.append(i)
+                paused = self.batch_pause_states.get(i.batch_id, {'paused': False})
+
+                # [修改] 这一行调用去掉了 CONVEYOR_PATH 参数
+                if i.update_conveyor_movement(dt, CONVEYOR_SPEED, paused):
+                    removes.append(i)
+
         for r in removes: self.conveyor_items.remove(r)
 
         self.customer_timer += dt
@@ -267,20 +299,23 @@ class GameplayState:
         from game.game_manager import GameState
         self.game_manager.change_state(GameState.GAME_OVER, money=self.money)
 
-    # TODO (THIS IS AI PROCESS)
+    # TODO 12.04修改替换
     def _render_conveyor_belt(self, screen):
         if not self.conveyor_texture: return
-        path = CONVEYOR_PATH; tex = self.conveyor_texture; w = tex.get_width()
-        for i in range(len(path)-1):
-            s, e = path[i], path[i+1]
-            dx, dy = e[0]-s[0], e[1]-s[1]; dist = math.hypot(dx, dy)
-            if dist < 1: continue
-            angle = math.degrees(math.atan2(-dy, dx))
-            seg = pygame.Surface((int(dist), self.belt_width), pygame.SRCALPHA)
-            off = int(self.scroll_offset) % w; x = off - w
-            while x < dist: seg.blit(tex, (x, 0)); x += w
-            rot = pygame.transform.rotate(seg, angle)
-            screen.blit(rot, rot.get_rect(center=(s[0]+dx/2, s[1]+dy/2)))
+
+        # 获取纹理高度
+        tex_h = self.conveyor_texture.get_height()
+
+        # 计算垂直滚动的偏移量 (取模运算实现无限循环)
+        y_offset = int(self.scroll_offset) % tex_h
+
+        # 确定绘制的 X 坐标 (左上角)
+        draw_x = CONVEYOR_CENTER_X - self.belt_width // 2
+
+        # [修改] 垂直平铺绘制
+        # 从 -tex_h 开始画，确保屏幕顶部没有空隙
+        for y in range(-tex_h, WINDOW_HEIGHT + tex_h, tex_h):
+            screen.blit(self.conveyor_texture, (draw_x, y + y_offset))
 
     def _draw_item_shadow(self, screen, item, off=(5,5), sc=1.0):
         if not item.image: return

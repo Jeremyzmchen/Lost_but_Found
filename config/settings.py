@@ -16,7 +16,7 @@ COLOR_GRAY = (200, 200, 200)
 COLOR_DARK_GRAY = (100, 100, 100)
 COLOR_BLUE = (100, 150, 255)
 COLOR_GREEN = (100, 255, 100)
-COLOR_RED = (255, 100, 100)
+COLOR_RED = (128, 4, 4)     # TODO 12.04修改替换
 COLOR_YELLOW = (255, 255, 100)
 COLOR_ORANGE = (255, 165, 0)
 
@@ -27,15 +27,15 @@ FONT_PATH = 'assets/fonts/game_font.ttf'
 # 移除了 DIFFICULTY_SETTINGS，合并为以下常量
 CUSTOMER_INTERVAL = 5.0      # 顾客生成间隔(秒)
 
-# ========== 传送带设置 ==========
-CONVEYOR_SPEED = 450
+# TODO 12.04修改替换
+CONVEYOR_SPEED = 400         # 速度稍微调慢一点，垂直下落看起来会比较快
 CONVEYOR_PAUSE_DURATION = 3.0
-CONVEYOR_PAUSE_TRIGGER_Y = 420
+CONVEYOR_PAUSE_TRIGGER_Y = 400 # 物品到达屏幕中间时触发暂停
 
-CONVEYOR_PATH = [
-    (-400, 350), (120, 350), (180, 380), (180, 580),
-    (180, 580), (180, 750), (150, 800), (-400, 800),
-]
+# TODO 12.04修改替换
+# [修改] 不再需要复杂的路径点，只需要定义传送带在画面左侧的位置
+CONVEYOR_CENTER_X = 140      # 传送带中心 X 坐标
+CONVEYOR_WIDTH = 180         # 传送带宽度
 
 CONVEYOR_PAUSE_AT_INDEX = 2
 ITEM_SPAWN_INTERVAL = 10.0
@@ -44,7 +44,8 @@ ITEM_VERTICAL_OFFSETS = [70, 0, -70]
 
 # 区域定义
 # 物品被拖到这里时，属于“已整理”，会被物理引擎接管（挤开效果）。
-CONVEYOR_AREA = {'x': 20, 'y': 280, 'width': 240, 'height': 450}
+# TODO 12.04修改替换
+CONVEYOR_AREA = {'x': 40, 'y': 0, 'width': 200, 'height': 900}
 DESK_AREA = {'x': 270, 'y': 350, 'width': 1300, 'height': 500}
 
 # [修改] 移除旧的 CUSTOMER_DELIVERY_AREA，改用多窗口配置
@@ -71,6 +72,7 @@ ASSETS = {
     'bg_main': 'assets/images/background_game.png',
     'bg_menu': 'assets/images/background_menu.png',
     'bg_game_over': 'assets/images/background_game_over.png',
+    'conveyor_belt': 'assets/images/conveyor_belt.png',         # TODO 12.04修改替换
     'npc_1': 'assets/images/npc_1.png',
     'npc_2': 'assets/images/npc_2.png',
     'npc_3': 'assets/images/npc_3.png',

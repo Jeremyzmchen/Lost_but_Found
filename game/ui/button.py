@@ -3,7 +3,8 @@ UI按钮组件 (支持多种样式：标准、灰色、红色、透明)
 """
 
 import pygame
-from config.settings import COLOR_WHITE, COLOR_BLACK, COLOR_BLUE
+from config.settings import COLOR_WHITE, COLOR_BLACK, COLOR_BLUE, COLOR_RED
+
 
 class Button:
     """可点击的按钮UI组件"""
@@ -52,7 +53,7 @@ class Button:
 
         elif style == 'danger':
             # 红色风格
-            self.color_normal = (200, 60, 60)
+            self.color_normal = COLOR_RED       # TODO 12.04修改替换
             self.color_hover = (230, 80, 80)
             self.color_pressed = (150, 40, 40)
             self.text_color = COLOR_WHITE

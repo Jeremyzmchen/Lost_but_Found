@@ -131,64 +131,26 @@ class Item:
         else:
             self.va = 0
 
-    def update_conveyor_movement(self, dt, speed, path, pause_flag=None):
-        if not self.on_conveyor: return True
+    # TODO 12.04修改替换
+    def update_conveyor_movement(self, dt, speed, pause_flag=None):
+        """
+        更新传送带运动 (简化版：垂直向下)
+        返回: True 如果物品移出了屏幕底部 (需要销毁), 否则 False
+        """
+        if not self.on_conveyor: return True  # 如果被拿起来了，不再由传送带控制
         if pause_flag and pause_flag.get('paused', False): return False
 
-        old_y = self.y
-        self.conveyor_progress += dt
-        time_offset = self.conveyor_start_offset / speed
-        effective_time = self.conveyor_progress - time_offset
-        if effective_time < 0: return False
+        # [修改] 简单的垂直移动逻辑
+        self.y += speed * dt
 
-        segment_distances = [0]
-        for i in range(len(path) - 1):
-            dx = path[i+1][0] - path[i][0]
-            dy = path[i+1][1] - path[i][1]
-            length = (dx * dx + dy * dy) ** 0.5
-            segment_distances.append(segment_distances[-1] + length)
-
-        total_distance = segment_distances[-1]
-        current_distance = effective_time * speed
-
-        if current_distance > total_distance + 100: return True
-
-        current_segment = 0
-        for i in range(len(segment_distances) - 1):
-            if current_distance < segment_distances[i + 1]:
-                current_segment = i
-                break
-        else:
-            current_segment = len(path) - 2
-
-        start_point = path[current_segment]
-        end_point = path[current_segment + 1]
-        segment_start_distance = segment_distances[current_segment]
-        segment_length = segment_distances[current_segment + 1] - segment_start_distance
-
-        if segment_length == 0: segment_progress = 0
-        else:
-            distance_in_segment = current_distance - segment_start_distance
-            segment_progress = distance_in_segment / segment_length
-            segment_progress = max(0, min(1, segment_progress))
-
-        base_x = start_point[0] + (end_point[0] - start_point[0]) * segment_progress
-        base_y = start_point[1] + (end_point[1] - start_point[1]) * segment_progress
-
-        offset_factor = 0
-        if current_segment == 0:
-            if segment_progress > 0.6: offset_factor = (segment_progress - 0.6) / 0.4
-        elif current_segment == 1: offset_factor = 1.0
-        elif 2 <= current_segment <= 5: offset_factor = 1.0
-        elif current_segment == 6: offset_factor = 1.0 - segment_progress
-        elif current_segment == 7: offset_factor = 0
-
-        smooth_offset = self.conveyor_vertical_offset * offset_factor
-        self.x = base_x - self.width // 2
-        self.y = base_y + smooth_offset - self.height // 2
-
+        # 更新 rect 位置
         if self.rect:
             self.rect.topleft = (int(self.x), int(self.y))
+
+        # [修改] 简单的越界检测：如果超出屏幕底部，返回 True
+        if self.y > 950:  # 假设屏幕高度 900，留一点余量
+            return True
+
         return False
 
     def contains_point(self, point):
