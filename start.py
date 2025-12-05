@@ -12,7 +12,7 @@ def main():
     # 启动游戏
     game.run()
 
-    # 退出系统
+    # 退出
     sys.exit()
 
 if __name__ == "__main__":
