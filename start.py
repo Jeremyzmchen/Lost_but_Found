@@ -6,11 +6,16 @@ import sys
 from game.game_manager import GameManager
 
 def main():
-    # instantiate GameManager
+    """
+    main entry point
+    """
+    # Instantiate GameManager
     game = GameManager()
-    # run the game
+
+    # Run the game
     game.run()
-    # exit
+
+    # Exit
     sys.exit()
 
 if __name__ == "__main__":
