@@ -64,6 +64,18 @@ class GameplayState:
         self.font_small = pygame.font.Font(FONT_PATH, 24)
         self.call_police_btn = Button(1430, 570, 130, 70,
                                       "Call Police", None, style='danger', font_size=27)
+
+        # 5. Initialize sound effect
+        self.sfx_money = None
+        self.sfx_deny = None
+        try:
+            self.sfx_money = pygame.mixer.Sound('assets/sounds/sfx_money.wav')
+            self.sfx_deny = pygame.mixer.Sound('assets/sounds/sfx_deny.mp3')
+            self.sfx_money.set_volume(0.8)
+            self.sfx_deny.set_volume(0.8)
+        except Exception as e:
+            print(f"Failed to load the sfx: {e}")
+
         # 5. Calling private method and music
         self._init_game()
 
@@ -74,11 +86,11 @@ class GameplayState:
         self._spawn_item_on_conveyor()
         self._spawn_customer()
         try:
-            pygame.mixer.music.load('assets/sounds/bgm_gameplay.mp3')
-            pygame.mixer.music.set_volume(0.1)
+            pygame.mixer.music.load('assets/sounds/sfx_bg.mp3')
+            pygame.mixer.music.set_volume(0.4)
             pygame.mixer.music.play(-1)
         except Exception as e:
-            print(f"Failed to load the music: {e}")
+            print(f"Failed to play BGM: {e}")
 
     def _load_background(self):
         """
@@ -354,11 +366,13 @@ class GameplayState:
         if c.check_item_match(item):
             self.money += REWARD_CORRECT
             self._spawn_popup(c.x, c.y + 100, f"+${REWARD_CORRECT}", COLOR_WHITE)
+            self.sfx_money.play()
             self._remove_customer(c)
             return True
         else:
             self.money += PENALTY_WRONG
             self._spawn_popup(c.x, c.y + 100, "Not this item!", COLOR_RED)
+            self.sfx_deny.play()
             return False
 
     def _handle_police_delivery(self, police, item):

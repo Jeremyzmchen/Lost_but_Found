@@ -36,8 +36,8 @@ class MenuState:
 
     def _play_menu_music(self):
         try:
-            pygame.mixer.music.load('assets/sounds/bgm_menu.mp3')
-            pygame.mixer.music.set_volume(0.7)
+            pygame.mixer.music.load('assets/sounds/bgm_menu.ogg')
+            pygame.mixer.music.set_volume(0.6)
             pygame.mixer.music.play(-1)
         except: pass
 
@@ -54,18 +54,8 @@ class MenuState:
 
         for i, (text, func) in enumerate(options):
             y = self.start_y + i * self.spacing
-            btn = Button(self.menu_x, y, self.btn_width, self.btn_height, text, func)
-
-            # --- 手动设置透明样式 ---
-            # 正常状态：完全透明
-            btn.color_normal = (0, 0, 0, 0)
-            # 悬停状态：淡淡的白色半透明
-            btn.color_hover = (255, 255, 255, 30)
-            # 按下状态：稍微亮一点
-            btn.color_pressed = (255, 255, 255, 60)
-
-            btn.text_color = COLOR_WHITE
-            btn.border_width = 0 # 去掉边框
+            btn = Button(self.menu_x, y, self.btn_width, self.btn_height,
+                        text, func, style='transparent')
             buttons.append(btn)
 
         return buttons
