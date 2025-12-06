@@ -25,7 +25,7 @@ class GameplayState:
         self.game_manager = game_manager
         self.money = 0
         self.shift_time = 0
-        self.shift_duration = 5
+        self.shift_duration = 180
         # TODO: an extension for next update
         #if 'money' in game_manager.game_data:
         #    self.money = game_manager.game_data['money']
@@ -256,13 +256,13 @@ class GameplayState:
         self.call_police_btn.render(screen)     # call_police
         for p in self.popups: p.render(screen)  # popups info
         self.hud.render(screen, self.money, self.shift_time, self.shift_duration)   # hud
-        # -4.1. If dragging, scale img of items
+        # Label: If dragging, scale img of items
         if self.dragging_item:
             scale_rate = 1.2
             self._draw_item_shadow(screen, self.dragging_item, (20,20), scale_rate)
             scale_image = pygame.transform.rotozoom(self.dragging_item.image, 0, scale_rate)
             screen.blit(scale_image, scale_image.get_rect(center=self.dragging_item.get_rect().center))
-        # -4.2. If not, show the label
+        # Label: If not, show the label
         if self.hovered_item and not self.dragging_item: self._render_item_tooltip(screen)
 
 
@@ -288,8 +288,8 @@ class GameplayState:
             item.batch_id = self.current_batch_id
             if i == CONVEYOR_PAUSE_AT_INDEX:
                 item.is_pause_trigger = True
-            target_x = CONVEYOR_CENTER_X
-            target_y = -150 - (i * 180)
+            target_x = CONVEYOR_CENTER_X - 40
+            target_y = -150 - (i * 200)
             item.set_position(target_x, target_y)
 
             # -1.4. Append to list
@@ -305,95 +305,127 @@ class GameplayState:
         Dynamically adjusts the items based on the current desktop status
         """
         # 1. Check whether there is empty slot
-        empty = [i for i, c in enumerate(self.customer_slots) if c is None]
-        if not empty: return
-        idx = random.choice(empty)
+        empty_cst_space = [i for i, c in enumerate(self.customer_slots) if c is None]
+        if not empty_cst_space: return
+        idx = random.choice(empty_cst_space)
 
         # 2. Intelligently assign item request to npc
         desk_items = self.inventory_manager.get_all_items()
         # -2.1. Remove the sticky notes
         valid_items = [i for i in desk_items if i.item_type != 'sticky_note']
-        type = random.choice(valid_items).item_type if valid_items and random.random() < 0.7 else random.choice(list(ITEM_DESCRIPTIONS.keys()))
+        # -2.2. Randomly choose an item
+        if valid_items and random.random() < 0.7:
+            item_type = random.choice(valid_items).item_type
+        else:
+            item_type = random.choice(list(ITEM_DESCRIPTIONS.keys()))
 
-        c = Customer(type, CUSTOMER_SLOTS[idx])
+        # 3. Assign item request to npc and add npc to customer list
+        c = Customer(item_type, CUSTOMER_SLOTS[idx])
         self.customer_slots[idx] = c; self.customers.append(c)
-
-    def _spawn_police(self):
-        empty_indices = [i for i, slot in enumerate(self.customer_slots) if slot is None]
-        if not empty_indices:
-            self._spawn_popup(WINDOW_WIDTH//2, WINDOW_HEIGHT//2, "No Space!", COLOR_RED)
-            return
-        idx = empty_indices[0]
-        p = Police(CUSTOMER_SLOTS[idx])
-        self.customer_slots[idx] = p
-        self.customers.append(p)
-        self._spawn_popup(p.x, p.y-80, "Police Arrived!", COLOR_BLUE)
-
-    def _spawn_popup(self, x, y, text, c=COLOR_WHITE):
-        self.popups.append(FloatingText(x, y, text, c))
 
     def _remove_customer(self, c):
         if c in self.customers: self.customers.remove(c)
         if c in self.customer_slots: self.customer_slots[self.customer_slots.index(c)] = None
 
-    # 警察
+    def _spawn_police(self):
+        """
+        Police Spawning System
+        A special game plot, related to rejection button, call police, sticky notes
+        """
+        # 1. Check whether there is empty slot
+        empty_plc_space = [i for i, slot in enumerate(self.customer_slots) if slot is None]
+        if not empty_plc_space:
+            self._spawn_popup(WINDOW_WIDTH - 800, WINDOW_HEIGHT - 300, "No SPACE!", COLOR_RED)
+            return
+        idx = empty_plc_space[0]
+
+        # 2. Instantiation and Set attributes
+        p = Police(CUSTOMER_SLOTS[idx])
+        self.customer_slots[idx] = p
+        self.customers.append(p)
+
     def _handle_delivery(self, c, item):
+        """Handle customer's delivery process"""
+        # 1. Check if not customers
         if isinstance(c, Police):
-            if c.police_state == 'waiting_for_note':
-                if isinstance(item, StickyNote):
-                    c.receive_note(item)
-                    self._spawn_popup(c.x, c.y-50, "File Accepted", COLOR_YELLOW)
-                    return True
-                else:
-                    self._spawn_popup(c.x, c.y-50, "Need Case Note!", COLOR_RED)
-                    return False
-            elif c.police_state == 'waiting_for_evidence':
-                if isinstance(item, StickyNote):
-                    self._spawn_popup(c.x, c.y-50, "I have the file.", COLOR_YELLOW)
-                    return False
-                if item.item_type == c.target_item_type:
-                    self.money += REWARD_CORRECT * 1.5
-                    self._spawn_popup(c.x, c.y-50, "Case Solved!", COLOR_GREEN)
-                    self._remove_customer(c)
-                    return True
-                else:
-                    self.money += PENALTY_WRONG
-                    self._spawn_popup(c.x, c.y-50, "Wrong Evidence!", COLOR_RED)
-                    self._remove_customer(c)
-                    return False
+            return self._handle_police_delivery(c, item)
+
+        # 2. Check if item match
+        if c.check_item_match(item):
+            self.money += REWARD_CORRECT
+            self._spawn_popup(c.x, c.y + 100, f"+${REWARD_CORRECT}", COLOR_WHITE)
+            self._remove_customer(c)
+            return True
+        else:
+            self.money += PENALTY_WRONG
+            self._spawn_popup(c.x, c.y + 100, "Not this item!", COLOR_RED)
             return False
 
-        if c.check_item_match(item):
-            self.money += REWARD_CORRECT; self._spawn_popup(c.x, c.y-50, f"+${REWARD_CORRECT}", COLOR_GREEN)
-            self._remove_customer(c); return True
-        else:
-            self.money += PENALTY_WRONG; self._spawn_popup(c.x, c.y-50, "WRONG!", COLOR_RED); return False
+    def _handle_police_delivery(self, police, item):
+        """
+        Handle police's delivery process
+        Two stages: 1.wait for sticky_note, 2.wait for matched_item
+        """
+        # Stage one
+        if police.police_state == 'waiting_for_note':
+            if isinstance(item, StickyNote):
+                police.receive_note(item)
+                self._spawn_popup(police.x, police.y + 50, "File Accepted.", COLOR_WHITE)
+                return True
+            else:
+                self._spawn_popup(police.x, police.y + 50, "Need Case Note!", COLOR_RED)
+                return False
+
+        # Stage two
+        elif police.police_state == 'waiting_for_evidence':
+            # Check if player delivery the sticky_note again
+            if isinstance(item, StickyNote):
+                self._spawn_popup(police.x, police.y - 50, "I have the file.", COLOR_RED)
+                return False
+
+            # Check item match
+            if item.item_type == police.target_item_type:
+                self.money += REWARD_CORRECT
+                self._spawn_popup(police.x, police.y + 50, "Case Solved!", COLOR_WHITE)
+                self._remove_customer(police)
+                return True
+            else:
+                self.money += PENALTY_WRONG
+                self._spawn_popup(police.x, police.y - 50, "Wrong Item!", COLOR_RED)
+                self._remove_customer(police)
+                return False
+
+        return False
 
     def _handle_rejection(self, c):
-        if isinstance(c, Police): return
+        """player click the 'don't have' button"""
         note = StickyNote(c.x, 350, c.sought_item_type)
         self.inventory_manager.add_item_to_desk(note)
-        self._spawn_popup(c.x, c.y-50, "Filed Case", COLOR_YELLOW)
+        self._spawn_popup(c.x, c.y + 50, "Filed Case", COLOR_WHITE)
         self._remove_customer(c)
 
+    def _spawn_popup(self, x, y, text, c=COLOR_WHITE):
+        """
+        UI, popup messages for player(warning, tips)
+        param: x: posX, y: posY, text: content, c: color
+        """
+        self.popups.append(FloatingText(x, y, text, c))
+
+    # TODO AI Calculate the position of the conveyor belt texture
     def _render_conveyor_belt(self, screen):
+        """UI, popup messages for player(warning, tips)"""
         if not self.conveyor_texture: return
 
-        # 获取纹理高度
         tex_h = self.conveyor_texture.get_height()
-
-        # 计算垂直滚动的偏移量 (取模运算实现无限循环)
+        # Calculate the offset for vertical scrolling
         y_offset = int(self.scroll_offset) % tex_h
-
-        # 确定绘制的 X 坐标 (左上角)
         draw_x = CONVEYOR_CENTER_X - self.belt_width // 2
-
-        # [修改] 垂直平铺绘制
-        # 从 -tex_h 开始画，确保屏幕顶部没有空隙
         for y in range(-tex_h, WINDOW_HEIGHT + tex_h, tex_h):
             screen.blit(self.conveyor_texture, (draw_x, y + y_offset))
 
+    # TODO AI Calculate the position of the conveyor belt texture
     def _draw_item_shadow(self, screen, item, off=(5,5), sc=1.0):
+        """UI, Draw shadow for item"""
         if not item.image: return
         img = item.image
         if sc != 1.0: img = pygame.transform.scale(img, (int(img.get_width()*sc), int(img.get_height()*sc)))
@@ -405,11 +437,14 @@ class GameplayState:
             else: screen.blit(shad, (item.x+off[0], item.y+off[1]))
         except: pass
 
+    # TODO AI Calculate the position of the conveyor belt texture
     def _render_item_tooltip(self, screen):
+        """UI, Draw item tooltip"""
         if not self.hovered_item: return
         mouse_pos = pygame.mouse.get_pos()
         item_name = self.hovered_item.name
         name_surf = self.font_small.render(item_name, True, COLOR_WHITE)
+
         padding_x = 10; padding_y = 8
         width = name_surf.get_width() + padding_x * 2; height = name_surf.get_height() + padding_y * 2
         x = mouse_pos[0] + 20; y = mouse_pos[1] + 20
