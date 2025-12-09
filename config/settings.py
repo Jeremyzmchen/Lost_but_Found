@@ -42,6 +42,23 @@ CUSTOMER_INTERVAL = 7.0      # NPC spawn interval
 CUSTOMER_SLOTS = [750, 1050, 1350]
 CUSTOMER_Y = 120    # Stop at this Y
 CUSTOMER_WAIT_TIME = 25.0    # Customer wait time
+# Special NPC
+THIEF_SPAWN_PROB = 0.15      # Spawn probability
+THIEF_WAIT_TIME = 15.0       # wait time
+THIEF_HP = 10                 # HP
+THIEF_PENALTY_HIT = -200     # Penalty
+
+# Item setting
+ITEM_SPAWN_INTERVAL = 15.0
+ITEMS_PER_BATCH = 3
+ITEM_VERTICAL_OFFSETS = [30, 0, -30]
+CONVEYOR_PAUSE_AT_INDEX = 2
+ITEM_SIZE = (100, 100)  # default item size
+ITEM_GRID_SIZE = 130    # default grid size
+
+# Area setting
+CONVEYOR_AREA = {'x': 40, 'y': 0, 'width': 200, 'height': 900}
+DESK_AREA = {'x': 270, 'y': 350, 'width': 1200, 'height': 500}
 
 # Conveyor setting
 CONVEYOR_SPEED = 400
@@ -50,33 +67,14 @@ CONVEYOR_PAUSE_TRIGGER_Y = 270
 CONVEYOR_CENTER_X = 140      # Set center_x
 CONVEYOR_WIDTH = 180         # Set width
 
-ITEM_SPAWN_INTERVAL = 15.0
-ITEMS_PER_BATCH = 3
-ITEM_VERTICAL_OFFSETS = [30, 0, -30]
-CONVEYOR_PAUSE_AT_INDEX = 2
-ITEM_SIZE = (100, 100)  # default item size
-ITEM_GRID_SIZE = 130    # default grid size
-
-# 区域定义
-# 物品被拖到这里时，属于“已整理”，会被物理引擎接管（挤开效果）。
-# TODO 12.04修改替换
-CONVEYOR_AREA = {'x': 40, 'y': 0, 'width': 200, 'height': 900}
-DESK_AREA = {'x': 270, 'y': 350, 'width': 1200, 'height': 500}
-
-# [新增] 小偷专用配置
-THIEF_SPAWN_PROB = 0.15      # 25% 的概率生成小偷 (可以自己调)
-THIEF_WAIT_TIME = 15.0       # 小偷只待 15 秒 (比普通顾客短)
-THIEF_HP = 10                 # 需要点击 3 次喷雾才能赶走
-THIEF_PENALTY_HIT = -200     # 被小偷得逞扣的分
-
-# 经济系统
+# Money
 REWARD_CORRECT = 100
 PENALTY_WRONG = -50
 PENALTY_TIMEOUT = -20
 PENALTY_CLICK = -10
 
 
-# 资源路径 (保持不变)
+# Img, Item Dict
 ASSETS = {
     # UI
     'cursor': 'assets/images/icons/cursor.png',
